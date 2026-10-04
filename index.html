@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Attention Radar: a personal project in systematic trading. The problem, the design choices, and how I built and ran it with AI agents.">
+<meta property="og:title" content="Attention Radar">
+<meta property="og:description" content="A personal project in systematic trading: the problem, the design choices, and how I built and ran it with AI agents.">
+<meta property="og:type" content="website">
+<title>Attention Radar</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: product-style story page. Vision first, then the system as a flow, then how I ran it, then scale. */
+:root{
+  --bg:#F3F6F9; --surface:#FFFFFF; --fg:#0E1A2B; --muted:#55657A; --line:#D5DDE6;
+  --accent:#0A6A86; --accent-soft:#DDEFF4; --ink-soft:#E7EDF3;
+  --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --body:"IBM Plex Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B131E; --surface:#111C2A; --fg:#E6EDF5; --muted:#93A4B8; --line:#243448;
+  --accent:#4FC1DE; --accent-soft:#12303B; --ink-soft:#182638; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B131E; --surface:#111C2A; --fg:#E6EDF5; --muted:#93A4B8; --line:#243448;
+  --accent:#4FC1DE; --accent-soft:#12303B; --ink-soft:#182638; color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:17px;line-height:1.6;padding-inline:20px;padding-block:0}
+.wrap{max-width:900px;margin-inline:auto;display:flex;flex-direction:column;gap:80px;padding-block:28px 72px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+p{margin:0;max-width:60ch}
+a{color:var(--accent)}
+section{display:flex;flex-direction:column;gap:22px}
+.eyebrow{font-family:var(--mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:var(--mono);font-size:.8rem;color:var(--muted)}
+.top b{color:var(--fg);font-weight:500}
+
+.hero{display:flex;flex-direction:column;gap:24px;padding-top:24px}
+h1{font-size:clamp(2.5rem,8vw,4.8rem);font-weight:800;letter-spacing:-.03em;line-height:1.03;max-width:17ch}
+h1 em{font-style:normal;color:var(--accent)}
+.lede{font-size:1.25rem;color:var(--muted);max-width:52ch}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{font-family:var(--mono);font-size:.78rem;padding:5px 12px;border:1px solid var(--line);background:var(--surface);color:var(--muted)}
+
+h2{font-size:clamp(1.6rem,4vw,2.3rem);font-weight:800;letter-spacing:-.02em;line-height:1.1;max-width:22ch}
+.vision{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.quote{background:var(--accent-soft);padding:22px;display:flex;flex-direction:column;gap:10px}
+.quote h3{font-size:1.15rem}
+.quote p{font-size:.97rem;color:var(--muted)}
+
+.flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;border:1px solid var(--line);background:var(--surface)}
+.step{padding:16px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--line);position:relative}
+.step:last-child{border-right:0}
+.step b{font-family:var(--display);font-size:1.02rem}
+.step span{font-size:.84rem;color:var(--muted);line-height:1.45}
+.step .t{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+@media (max-width:760px){
+  .flow{grid-template-columns:minmax(0,1fr)}
+  .step{border-right:0;border-bottom:1px solid var(--line)}
+  .step:last-child{border-bottom:0}
+}
+.under{font-size:.95rem;color:var(--muted);max-width:66ch}
+
+.run{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);padding:20px;display:flex;flex-direction:column;gap:8px}
+.card h3{font-size:1.15rem}
+.card p{font-size:.95rem;color:var(--muted)}
+
+.run.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.run.five{grid-template-columns:repeat(6,minmax(0,1fr))}
+.run.five .card{grid-column:span 2}
+.run.five .card:nth-child(n+4){grid-column:span 3}
+@media (max-width:700px){.run.two,.run.five{grid-template-columns:minmax(0,1fr)}.run.five .card,.run.five .card:nth-child(n+4){grid-column:auto}}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+.stat{background:var(--surface);padding:16px;display:flex;flex-direction:column;gap:2px}
+.stat b{font-family:var(--mono);font-size:1.4rem;font-weight:500;font-variant-numeric:tabular-nums}
+.stat span{font-size:.82rem;color:var(--muted)}
+
+.callout{background:var(--ink-soft);padding:22px 24px;max-width:64ch}
+.callout p{max-width:none}
+footer{padding-top:22px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted);display:flex;flex-direction:column;gap:6px;max-width:70ch}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+body{margin:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="top"><span><b>Meet Patel</b> &middot; Data platform and DevOps engineer</span><span>Personal project &middot; 2026</span></div>
+
+<header class="hero">
+  <h1>I wanted to take the <em>emotion</em> out of trading.</h1>
+  <p class="lede">So I designed a system that makes the decisions in the same way every time, then built the data, the logic and the AI workflow to run it. Attention Radar is that system.</p>
+  <div class="chips"><span>Python</span><span>Broker and exchange APIs</span><span>Real-time scanning</span><span>AI agents</span><span>Risk controls</span></div>
+</header>
+
+<section>
+  <span class="eyebrow">The problem</span>
+  <h2>Picking trades by hand was not working for me.</h2>
+  <div class="vision">
+    <div class="quote"><h3>Emotion decided the exits</h3><p>I found it hard to close losing trades. The decision that mattered most was the one I was worst at making under stress.</p></div>
+    <div class="quote"><h3>Too much to watch, too little time</h3><p>There are over 200 stocks in the options market, and the moves that matter happen in the first 45 minutes after the open. No one can watch that by eye.</p></div>
+    <div class="quote"><h3>Other people&rsquo;s calls teach nothing</h3><p>Following tips gives no method to improve. I wanted a system I understood end to end and could change.</p></div>
+  </div>
+</section>
+
+<section>
+  <span class="eyebrow">Why I built it this way</span>
+  <h2>Each design choice answers one of those problems.</h2>
+  <div class="run five">
+    <div class="card"><h3>Fixed rules instead of gut feel</h3><p>Entry, selection and exit rules are written down before the market opens, so the emotional step is removed from the loop.</p></div>
+    <div class="card"><h3>My own system, built from scratch</h3><p>Building every layer myself meant I knew why each decision was made, and could change one part without breaking the rest.</p></div>
+    <div class="card"><h3>A lab kept apart from the live system</h3><p>New ideas were explored in a separate research area, so an unproven experiment could never quietly change the rules that were running.</p></div>
+    <div class="card"><h3>An exit advisor and a hard deadline</h3><p>The exit logic advises and never closes a position by itself. A hard close at 15:00 covers the day, because resting stop orders are cancelled at 15:15.</p></div>
+    <div class="card"><h3>Every idea checked against a baseline</h3><p>Before trusting a rule, I compared it with random behaviour on the same data, so I knew what the system was really doing.</p></div>
+  </div>
+</section>
+
+<section>
+  <span class="eyebrow">Where it is headed</span>
+  <h2>An AI partner for the work.</h2>
+  <p>The longer aim is an assistant I can work with every day: one that holds the full project context, tests ideas with me and keeps me honest. This project is how I am learning to build and manage that kind of system.</p>
+</section>
+
+<section>
+  <span class="eyebrow">How I built it</span>
+  <h2>A pipeline from raw data to a managed position.</h2>
+  <div class="flow">
+    <div class="step"><span class="t">Data</span><b>Ingest</b><span>Minute bars for 205 NSE instruments and 278K exchange filings, through resumable API downloaders.</span></div>
+    <div class="step"><span class="t">Detect</span><b>Scan</b><span>Rule gates and a ranking layer score every stock in the opening window of the market.</span></div>
+    <div class="step"><span class="t">Select</span><b>Choose the contract</b><span>Reads the live option chain to pick the strike, with premium, delta and open interest.</span></div>
+    <div class="step"><span class="t">Protect</span><b>Manage risk</b><span>Stop and target planner, trailing logic and a hard deadline that closes positions on time.</span></div>
+    <div class="step"><span class="t">Review</span><b>Learn</b><span>Every decision is logged with real option-chain context, then replayed and studied.</span></div>
+  </div>
+  <p class="under">Two codebases kept apart on purpose: a rule-based screener with frozen rules, and a separate research area for ideas that were not yet proven. That way an experiment could not quietly change the system that was running.</p>
+</section>
+
+<section>
+  <span class="eyebrow">How I ran it</span>
+  <h2>I treated the AI like a team member that needs good management.</h2>
+  <div class="run two">
+    <div class="card"><h3>A written spec</h3><p>A 788-line, version-controlled file loaded into every AI session: the goal, the architecture, the rules that are frozen and the mistakes not to repeat.</p></div>
+    <div class="card"><h3>Two agents, clear roles</h3><p>One agent for strategy and judgement with full project history. One for code, debugging and tests on real data. The spec is the shared memory between them.</p></div>
+    <div class="card"><h3>A morning routine</h3><p>Each trading day starts with a script that refreshes the API credentials and re-reads the rules to the agent, because both silently go stale.</p></div>
+    <div class="card"><h3>Review and challenge</h3><p>I questioned the agent&rsquo;s output, cross-checked it against a second model, and fixed the instruction file when the agent misread it.</p></div>
+  </div>
+</section>
+
+<section>
+  <span class="eyebrow">The scale of it</span>
+  <h2>Eight months, built alongside a full-time job.</h2>
+  <div class="stats">
+    <div class="stat"><b>112</b><span>Python modules</span></div>
+    <div class="stat"><b>~15K</b><span>lines of code</span></div>
+    <div class="stat"><b>3 GB</b><span>market data stored</span></div>
+    <div class="stat"><b>45+</b><span>ideas tested against baselines</span></div>
+    <div class="stat"><b>22</b><span>memory files for the agents</span></div>
+  </div>
+  <div class="callout"><p>It shows how I take on something I have never done before: start with a clear goal, design the whole system, learn each piece as I build it, and add checks so I know what the system is really doing. I bring the same approach to CI/CD and data platform work.</p></div>
+</section>
+
+<footer>
+  <span>A personal research project, not investment advice or a trading service, and it makes no claim of returns.</span>
+</footer>
+
+</div>
+</body>
+</html>
